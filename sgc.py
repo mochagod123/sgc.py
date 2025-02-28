@@ -65,37 +65,31 @@ class SGC:
 
     async def send_channel(self, session: aiohttp.ClientSession, channel: discord.TextChannel, message: discord.Message):
         ch_webhooks = await channel.webhooks()
-        whname = f"Shark-Global-main"
+        whname = "Shark-Global-main"
         webhooks = discord.utils.get(ch_webhooks, name=whname)
         if webhooks is None:
-            webhooks = await channel.create_webhook(name=f"{whname}")
+            webhooks = await channel.create_webhook(name=whname)
         webhook = Webhook.from_url(webhooks.url, session=session)
         try:
+            msg = discord.Embed(color=discord.Color.green()).set_footer(text=f"mID:{message.id}")
             if message.reference:
-                if message.attachments == []:
-                    try:
-                        rmsg = await message.channel.fetch_message(message.reference.message_id)
-                        msg = discord.Embed(description=rmsg.content, color=discord.Color.green()).set_author(name=f"{rmsg.author.name} - {rmsg.author.id}").set_footer(text=f"mID:{message.id}")
-                    except:
-                        msg = discord.Embed(color=discord.Color.green()).set_footer(text=f"mID:{message.id}")
-                else:
-                    try:
-                        rmsg = await message.channel.fetch_message(message.reference.message_id)
-                        msg = discord.Embed(description=rmsg.content, color=discord.Color.green()).set_author(name=f"{rmsg.author.name} - {rmsg.author.id}").set_footer(text=f"mID:{message.id}").set_image(url=message.attachments[0].url)
-                    except:
-                        msg = discord.Embed(color=discord.Color.green()).set_footer(text=f"mID:{message.id}").set_image(url=message.attachments[0].url)
-            else:
-                if message.attachments == []:
-                    msg = discord.Embed(color=discord.Color.green()).set_footer(text=f"mID:{message.id}")
-                else:
-                    msg = discord.Embed(color=discord.Color.green()).set_footer(text=f"mID:{message.id}").set_image(url=message.attachments[0].url)
+                try:
+                    rmsg = await message.channel.fetch_message(message.reference.message_id)
+                    msg.description = rmsg.content
+                    msg.set_author(name=f"{rmsg.author.name} - {rmsg.author.id}")
+                except:
+                    pass
+                if message.attachments:
+                    msg.set_image(url=message.attachments[0].url)
+            elif message.attachments:
+                msg.set_image(url=message.attachments[0].url)
         except:
             return
         try:
-            if message.author.avatar == None:
-                await webhook.send(f"{message.content.replace('@', '＠')}", username=f"({message.author.name}/{message.author.id})({message.guild.name.lower().replace("discord", "*")})", embed=msg)
-            else:
-                await webhook.send(f"{message.content.replace('@', '＠')}", avatar_url=message.author.avatar.url, username=f"({message.author.name}/{message.author.id})({message.guild.name.lower().replace("discord", "*")})", embed=msg)
+            username = f"({message.author.name}/{message.author.id})({message.guild.name.lower().replace('discord', '*')})"
+            content = message.content.replace("@", "＠")
+            avatar_url = message.author.avatar.url if message.author.avatar else None
+            await webhook.send(content, username=username, avatar_url=avatar_url, embed=msg)
         except:
             return
         
@@ -103,56 +97,45 @@ class SGC:
         if dic is None:
             return
         ch_webhooks = await channel.webhooks()
-        whname = f"Shark-Global-main"
+        whname = "Shark-Global-main"
         webhooks = discord.utils.get(ch_webhooks, name=whname)
         if webhooks is None:
-            webhooks = await channel.create_webhook(name=f"{whname}")
+            webhooks = await channel.create_webhook(name=whname)
         webhook = Webhook.from_url(webhooks.url, session=session)
-        if message.reference:
-            try:
-                rmsg = await message.channel.fetch_message(message.reference.message_id)
-                msg = discord.Embed(description=rmsg.content, color=discord.Color.green()).set_author(name=f"{rmsg.author.name} - {rmsg.author.id}")
-            except:
-                msg = None
-        else:
-                
-            try:
-                reference_mid = dic["reference"] #返信元メッセージID
-
-                reference_message_content = "" #返信元メッセージ用変数を初期化
-                reference_message_author = "" #返信元ユーザータグ用変数を初期化
-                past_dic = None #返信元メッセージの辞書型リスト用変数を初期化
-                async for past_message in message.channel.history(limit=1000): #JSONチャンネルの過去ログ1000件をループ
-                    try: #JSONのエラーを監視
-                        past_dic = json.loads(past_message.content) #過去ログのJSONを辞書型リストに変換
-                    except json.decoder.JSONDecodeError as e: #JSON読み込みエラー→そもそもJSONでは無い可能性があるのでスルー
-                        continue
-                    if "type" in past_dic and past_dic["type"] != "message": #メッセージでは無い時はスルー
-                        continue
-
-                    if not "messageId" in past_dic: #キーにメッセージIDが存在しない時はスルー
-                        continue
-                                    
-                    if str(past_dic["messageId"]) == str(reference_mid): #過去ログのメッセージIDが返信元メッセージIDと一致したとき
-                        reference_message_author = "{}#{}".format(past_dic["userName"],past_dic["userDiscriminator"]) #ユーザータグを取得
-                        reference_message_content = past_dic["content"] #メッセージ内容を取得
-                        try:
-                            if not "attachmentsUrl" in dic:
-                                msg = discord.Embed(description=reference_message_content, color=discord.Color.green()).set_author(name=reference_message_author).set_footer(text=f"mID:{dic["messageId"]}")
-                            else:
-                                msg = discord.Embed(description=reference_message_content, color=discord.Color.green()).set_author(name=reference_message_author).set_footer(text=f"mID:{dic["messageId"]}").set_image(url=urllib.parse.unquote(dic["attachmentsUrl"][0]))
-                                break
-                        except:
-                            msg = discord.Embed(description=reference_message_content, color=discord.Color.green()).set_author(name=reference_message_author).set_footer(text=f"mID:{dic["messageId"]}")
-            except:
+        msg = None
+        try:
+            reference_mid = dic.get("reference")
+            reference_message_content = ""
+            reference_message_author = ""
+            past_dic = None
+            async for past_message in message.channel.history(limit=1000):
                 try:
-                    if not "attachmentsUrl" in dic:
-                        msg = discord.Embed(color=discord.Color.green()).set_footer(text=f"mID:{dic["messageId"]}")
-                    else:
-                        msg = discord.Embed(color=discord.Color.green()).set_footer(text=f"mID:{dic["messageId"]}").set_image(url=urllib.parse.unquote(dic["attachmentsUrl"][0]))
-                except:
-                    msg = discord.Embed(color=discord.Color.green()).set_footer(text=f"mID:{dic["messageId"]}")
-        await webhook.send(f"{dic["content"].replace('@', '＠')}", avatar_url="https://media.discordapp.net/avatars/{}/{}.png?size=1024".format(dic["userId"], dic["userAvatar"]), username=f"({dic["userName"]}/{dic["userId"]})({dic["guildName"].lower().replace("discord", "*")})", embed=msg)
+                    past_dic = json.loads(past_message.content)
+                except json.decoder.JSONDecodeError:
+                    continue
+                if "type" in past_dic and past_dic["type"] != "message":
+                    continue
+                if "messageId" not in past_dic:
+                    continue
+                if str(past_dic["messageId"]) == str(reference_mid):
+                    reference_message_author = f"{past_dic['userName']}#{past_dic['userDiscriminator']}"
+                    reference_message_content = past_dic["content"]
+                    msg = discord.Embed(description=reference_message_content, color=discord.Color.green()).set_author(name=reference_message_author).set_footer(text=f"mID:{dic['messageId']}")
+                    if "attachmentsUrl" in dic:
+                        msg.set_image(url=urllib.parse.unquote(dic["attachmentsUrl"][0]))
+                    break
+        except:
+            pass
+        if msg is None:
+            msg = discord.Embed(color=discord.Color.green()).set_footer(text=f"mID:{dic['messageId']}")
+            if "attachmentsUrl" in dic:
+                msg.set_image(url=urllib.parse.unquote(dic["attachmentsUrl"][0]))
+        await webhook.send(
+            dic["content"].replace("@", "＠"),
+            avatar_url=f"https://media.discordapp.net/avatars/{dic['userId']}/{dic['userAvatar']}.png?size=1024",
+            username=f"({dic['userName']}/{dic['userId']})({dic['guildName'].lower().replace('discord', '*')})",
+            embed=msg
+        )
 
     async def read_demo_sgc(self, message: discord.Message):
         if type(message.channel) == discord.DMChannel:
