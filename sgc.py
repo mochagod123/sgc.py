@@ -64,6 +64,8 @@ class SGC:
         await self.bot.get_channel(self.demo_sgc_channel_id).send(json)
 
     async def send_channel(self, session: aiohttp.ClientSession, channel: discord.TextChannel, message: discord.Message):
+        if channel is None:
+            return
         ch_webhooks = await channel.webhooks()
         whname = "Shark-Global-main"
         webhooks = discord.utils.get(ch_webhooks, name=whname)
@@ -95,6 +97,8 @@ class SGC:
         
     async def send_channel_byjson(self, session: aiohttp.ClientSession, channel: discord.TextChannel, message: discord.Message, dic):
         if dic is None:
+            return
+        if channel is None:
             return
         ch_webhooks = await channel.webhooks()
         whname = "Shark-Global-main"
