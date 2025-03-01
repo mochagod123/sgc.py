@@ -30,7 +30,7 @@ class SGC:
         dic.update({"type": "message"})
         dic.update({"userId": str(message.author.id)})
         dic.update({"userName": message.author.name})
-        dic.update({"x-userGlobal_name": message.author.display_name})
+        dic.update({"x-userGlobal_name": message.author.global_name})
         dic.update({"userDiscriminator": message.author.discriminator})
         if hasattr(message.author.avatar, 'key'):
             dic.update({"userAvatar": message.author.avatar.key})
