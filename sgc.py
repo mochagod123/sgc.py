@@ -5,12 +5,13 @@ import aiohttp
 import urllib
 
 class SGC:
-    def __init__(self, bot: discord.Client, demo_ch: discord.TextChannel = None):
+    def __init__(self, bot: discord.Client, demo_ch: discord.TextChannel = None, webhook_name: str = "Shark-Global-main"):
         self.sgc_channel_id = 707158257818664991
         if not demo_ch:
             self.demo_sgc_channel_id = 707158343952629780
         else:
             self.demo_sgc_channel_id = demo_ch.id
+        self.webhook_name = webhook_name
         self.bot = bot
     
     async def make_json(self, message: discord.Message):
@@ -67,7 +68,7 @@ class SGC:
         if channel is None:
             return
         ch_webhooks = await channel.webhooks()
-        whname = "Shark-Global-main"
+        whname = self.webhook_name
         webhooks = discord.utils.get(ch_webhooks, name=whname)
         if webhooks is None:
             webhooks = await channel.create_webhook(name=whname)
@@ -101,7 +102,7 @@ class SGC:
         if channel is None:
             return
         ch_webhooks = await channel.webhooks()
-        whname = "Shark-Global-main"
+        whname = self.webhook_name
         webhooks = discord.utils.get(ch_webhooks, name=whname)
         if webhooks is None:
             webhooks = await channel.create_webhook(name=whname)
