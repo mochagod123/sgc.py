@@ -1,10 +1,6 @@
 # sgc.py
 スーパーグローバルチャットを簡単に生成します。
 
-インストール<br>
-```
-pip install sgc.py
-```
 サンプルコード<br>
 ```
 import sgc
